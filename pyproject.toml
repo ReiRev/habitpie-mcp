@@ -1,0 +1,20 @@
+[build-system]
+requires = ["hatchling>=1.27.0"]
+build-backend = "hatchling.build"
+
+[project]
+name = "habitpie-mcp"
+version = "0.1.0"
+description = "MCP server for Habitify built on top of habitipie"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "habitipie",
+    "mcp[cli]>=1.27.0,<2.0.0",
+]
+
+[project.scripts]
+habitpie-mcp = "habitpie_mcp.server:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["habitpie_mcp"]

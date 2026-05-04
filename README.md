@@ -52,3 +52,37 @@ Implementation should prefer:
 - `habitipie` as the single Habitify API integration point
 - typed request and response models
 - small issue-sized changes merged incrementally
+
+## Local Bootstrap
+
+Use `uv` for local setup when available:
+
+```bash
+uv sync
+```
+
+If `uv` is not installed, use a standard editable install instead:
+
+```bash
+python -m pip install -e .
+```
+
+Run the server over stdio:
+
+```bash
+uv run habitpie-mcp
+```
+
+Or, without `uv`:
+
+```bash
+python -m habitpie_mcp
+```
+
+For direct module execution:
+
+```bash
+uv run python -m habitpie_mcp
+```
+
+The current scaffold intentionally does not expose the Habitify tool surface yet. That work is tracked in later issues.
