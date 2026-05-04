@@ -64,7 +64,7 @@ uv sync
 If `uv` is not installed, use a standard editable install instead:
 
 ```bash
-python -m pip install -e .
+python -m pip install -e ".[dev]"
 ```
 
 Run the server over stdio:
@@ -86,3 +86,35 @@ uv run python -m habitpie_mcp
 ```
 
 The current scaffold intentionally does not expose the Habitify tool surface yet. That work is tracked in later issues.
+
+## Quality Checks
+
+This repository currently uses:
+
+- `ruff` for formatting and linting
+- `mypy` for static type checking
+- `pytest` for tests
+
+Run the local quality pass with `uv`:
+
+```bash
+uv run ruff format .
+uv run ruff check .
+uv run mypy
+uv run pytest
+```
+
+Or, without `uv`:
+
+```bash
+python -m ruff format .
+python -m ruff check .
+python -m mypy
+python -m pytest
+```
+
+If you want the same checks before commits, install pre-commit hooks:
+
+```bash
+python -m pre_commit install
+```
