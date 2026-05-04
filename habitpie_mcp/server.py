@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from mcp.server.fastmcp import FastMCP
 
+from .config import load_settings
 from .tools import register_tools
 
 SERVER_NAME = "habitpie-mcp"
@@ -26,4 +27,5 @@ mcp = create_server()
 
 
 def main() -> None:
+    load_settings()
     mcp.run(transport="stdio")
