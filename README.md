@@ -108,10 +108,22 @@ Run the server over stdio:
 uv run habitpie-mcp
 ```
 
+Run the server over streamable HTTP:
+
+```bash
+uv run habitpie-mcp --transport streamable-http --host 127.0.0.1 --port 8000
+```
+
 Or, without `uv`:
 
 ```bash
 python -m habitpie_mcp
+```
+
+Or, for streamable HTTP without `uv`:
+
+```bash
+python -m habitpie_mcp --transport streamable-http --host 127.0.0.1 --port 8000
 ```
 
 For direct module execution:
@@ -121,6 +133,8 @@ uv run python -m habitpie_mcp
 ```
 
 Once the server is running, MCP clients should discover the current Habitify tool set automatically.
+
+For streamable HTTP mode, the default MCP endpoint is `http://127.0.0.1:8000/mcp`.
 
 ## Example Operations
 
