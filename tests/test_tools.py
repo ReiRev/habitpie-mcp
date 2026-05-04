@@ -89,6 +89,15 @@ class StubHabitsResource:
         self.calls.append(("create_note", (habit_id, request), {}))
         return {"id": "note_1", "content": request.content}
 
+    def archive(self, habit_id: str) -> None:
+        self.calls.append(("archive", (habit_id,), {}))
+
+    def delete(self, habit_id: str) -> None:
+        self.calls.append(("delete", (habit_id,), {}))
+
+    def delete_note(self, habit_id: str, note_id: str) -> None:
+        self.calls.append(("delete_note", (habit_id, note_id), {}))
+
 
 class StubAreasResource:
     def __init__(self) -> None:
@@ -97,6 +106,9 @@ class StubAreasResource:
     def list(self) -> Sequence[dict[str, str]]:
         self.calls.append(("list", (), {}))
         return [{"id": "area_1"}]
+
+    def delete(self, area_id: str) -> None:
+        self.calls.append(("delete", (area_id,), {}))
 
 
 class StubClient:
@@ -119,13 +131,17 @@ def test_server_registers_read_only_tools() -> None:
         "get_habit",
         "get_habit_journal",
         "get_habit_statistics",
+        "archive_habit",
+        "delete_habit",
         "list_areas",
+        "delete_area",
         "create_log",
         "complete_log",
         "fail_log",
         "skip_log",
         "list_notes",
         "create_note",
+        "delete_note",
     ]
 
 
@@ -241,6 +257,11 @@ def test_translate_tool_error_maps_not_found_error() -> None:
     assert str(translated) == "Habitify resource not found: missing habit"
 
 
+def test_require_confirmation_rejects_missing_confirm() -> None:
+    with pytest.raises(ValueError, match="archive_habit requires confirm=True"):
+        errors.require_confirmation(confirm=False, action_name="archive_habit")
+
+
 def test_create_log_builds_request_model(monkeypatch: pytest.MonkeyPatch) -> None:
     stub_client = StubClient()
     monkeypatch.setattr(
@@ -267,7 +288,9 @@ def test_create_log_builds_request_model(monkeypatch: pytest.MonkeyPatch) -> Non
     assert args[1].target_date == date(2024, 1, 5)
 
 
-def test_complete_log_without_target_date_passes_none(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_complete_log_without_target_date_passes_none(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     stub_client = StubClient()
     monkeypatch.setattr(
         log_tools,
@@ -340,3 +363,77 @@ def test_create_note_builds_request_model(monkeypatch: pytest.MonkeyPatch) -> No
     assert args[1].content == "Solid run today"
     assert args[1].mood_level == MoodLevel.HIGH
     assert args[1].photos == ["https://example.com/photo1.jpg"]
+
+
+def test_archive_habit_requires_confirmation() -> None:
+    with pytest.raises(ValueError, match="archive_habit requires confirm=True"):
+        habit_tools.archive_habit("habit_123")
+
+
+def test_archive_habit_returns_structured_result(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    stub_client = StubClient()
+    monkeypatch.setattr(
+        habit_tools,
+        "create_habitipy_client",
+        lambda: stub_client_context(stub_client),
+    )
+
+    result = habit_tools.archive_habit("habit_123", confirm=True)
+
+    assert result == {"ok": True, "action": "archive_habit", "habit_id": "habit_123"}
+    assert stub_client.habits.calls[0] == ("archive", ("habit_123",), {})
+
+
+def test_delete_habit_returns_structured_result(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    stub_client = StubClient()
+    monkeypatch.setattr(
+        habit_tools,
+        "create_habitipy_client",
+        lambda: stub_client_context(stub_client),
+    )
+
+    result = habit_tools.delete_habit("habit_123", confirm=True)
+
+    assert result == {"ok": True, "action": "delete_habit", "habit_id": "habit_123"}
+    assert stub_client.habits.calls[0] == ("delete", ("habit_123",), {})
+
+
+def test_delete_area_returns_structured_result(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    stub_client = StubClient()
+    monkeypatch.setattr(
+        area_tools,
+        "create_habitipy_client",
+        lambda: stub_client_context(stub_client),
+    )
+
+    result = area_tools.delete_area("area_1", confirm=True)
+
+    assert result == {"ok": True, "action": "delete_area", "area_id": "area_1"}
+    assert stub_client.areas.calls[0] == ("delete", ("area_1",), {})
+
+
+def test_delete_note_returns_structured_result(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    stub_client = StubClient()
+    monkeypatch.setattr(
+        note_tools,
+        "create_habitipy_client",
+        lambda: stub_client_context(stub_client),
+    )
+
+    result = note_tools.delete_note("habit_123", "note_1", confirm=True)
+
+    assert result == {
+        "ok": True,
+        "action": "delete_note",
+        "habit_id": "habit_123",
+        "note_id": "note_1",
+    }
+    assert stub_client.habits.calls[0] == ("delete_note", ("habit_123", "note_1"), {})

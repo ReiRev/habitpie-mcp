@@ -36,3 +36,10 @@ def translate_tool_error(exc: Exception) -> Exception:
         return RuntimeError(f"Habitify request timed out: {exc}")
 
     return exc
+
+
+def require_confirmation(*, confirm: bool, action_name: str) -> None:
+    if not confirm:
+        raise ValueError(
+            f"{action_name} requires confirm=True because it is a destructive action."
+        )

@@ -6,7 +6,11 @@ from habitipie import HabitType
 from mcp.server.fastmcp import FastMCP
 
 from habitpie_mcp.client import create_habitipy_client
-from habitpie_mcp.errors import parse_iso_date, translate_tool_error
+from habitpie_mcp.errors import (
+    parse_iso_date,
+    require_confirmation,
+    translate_tool_error,
+)
 
 
 def list_habits(
@@ -66,8 +70,40 @@ def get_habit_statistics(
         raise translate_tool_error(exc) from exc
 
 
+def archive_habit(habit_id: str, *, confirm: bool = False) -> dict[str, object]:
+    require_confirmation(confirm=confirm, action_name="archive_habit")
+
+    try:
+        with create_habitipy_client() as client:
+            client.habits.archive(habit_id)
+            return {
+                "ok": True,
+                "action": "archive_habit",
+                "habit_id": habit_id,
+            }
+    except Exception as exc:
+        raise translate_tool_error(exc) from exc
+
+
+def delete_habit(habit_id: str, *, confirm: bool = False) -> dict[str, object]:
+    require_confirmation(confirm=confirm, action_name="delete_habit")
+
+    try:
+        with create_habitipy_client() as client:
+            client.habits.delete(habit_id)
+            return {
+                "ok": True,
+                "action": "delete_habit",
+                "habit_id": habit_id,
+            }
+    except Exception as exc:
+        raise translate_tool_error(exc) from exc
+
+
 def register_habit_tools(server: FastMCP) -> None:
     server.tool()(list_habits)
     server.tool()(get_habit)
     server.tool()(get_habit_journal)
     server.tool()(get_habit_statistics)
+    server.tool()(archive_habit)
+    server.tool()(delete_habit)
