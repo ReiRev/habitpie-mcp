@@ -17,6 +17,7 @@ The server will:
 The primary design record is:
 
 - [docs/adr/0001-initial-mcp-server-architecture.md](docs/adr/0001-initial-mcp-server-architecture.md)
+- [docs/usage.md](docs/usage.md)
 
 Read that ADR before starting implementation work. It defines:
 
