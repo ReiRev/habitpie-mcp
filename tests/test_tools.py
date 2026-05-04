@@ -7,13 +7,22 @@ from datetime import date
 
 import httpx
 import pytest
-from habitipie import HabitType
+from habitipie import (
+    HabitLogActionRequest,
+    HabitLogRequest,
+    HabitNoteCreateRequest,
+    HabitType,
+    MoodLevel,
+    UnitSymbol,
+)
 from habitipie.errors import NotFoundError
 
 from habitpie_mcp import errors
 from habitpie_mcp.server import create_server
 from habitpie_mcp.tools import areas as area_tools
 from habitpie_mcp.tools import habits as habit_tools
+from habitpie_mcp.tools import logs as log_tools
+from habitpie_mcp.tools import notes as note_tools
 
 
 class StubHabitsResource:
@@ -48,6 +57,38 @@ class StubHabitsResource:
         )
         return {"id": habit_id, "total_logs": 0}
 
+    def create_log(self, habit_id: str, request: HabitLogRequest) -> dict[str, str]:
+        self.calls.append(("create_log", (habit_id, request), {}))
+        return {"message": "Habit log created successfully"}
+
+    def complete_log(
+        self, habit_id: str, request: HabitLogActionRequest | None = None
+    ) -> dict[str, str]:
+        self.calls.append(("complete_log", (habit_id, request), {}))
+        return {"message": "Habit marked as completed successfully"}
+
+    def fail_log(
+        self, habit_id: str, request: HabitLogActionRequest | None = None
+    ) -> dict[str, str]:
+        self.calls.append(("fail_log", (habit_id, request), {}))
+        return {"message": "Habit marked as failed successfully"}
+
+    def skip_log(
+        self, habit_id: str, request: HabitLogActionRequest | None = None
+    ) -> dict[str, str]:
+        self.calls.append(("skip_log", (habit_id, request), {}))
+        return {"message": "Habit marked as skipped successfully"}
+
+    def list_notes(self, habit_id: str) -> Sequence[dict[str, str]]:
+        self.calls.append(("list_notes", (habit_id,), {}))
+        return [{"id": "note_1"}]
+
+    def create_note(
+        self, habit_id: str, request: HabitNoteCreateRequest
+    ) -> dict[str, object]:
+        self.calls.append(("create_note", (habit_id, request), {}))
+        return {"id": "note_1", "content": request.content}
+
 
 class StubAreasResource:
     def __init__(self) -> None:
@@ -79,10 +120,18 @@ def test_server_registers_read_only_tools() -> None:
         "get_habit_journal",
         "get_habit_statistics",
         "list_areas",
+        "create_log",
+        "complete_log",
+        "fail_log",
+        "skip_log",
+        "list_notes",
+        "create_note",
     ]
 
 
-def test_list_habits_forwards_expected_arguments(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_list_habits_forwards_expected_arguments(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     stub_client = StubClient()
     monkeypatch.setattr(
         habit_tools,
@@ -190,3 +239,104 @@ def test_translate_tool_error_maps_not_found_error() -> None:
 
     assert isinstance(translated, RuntimeError)
     assert str(translated) == "Habitify resource not found: missing habit"
+
+
+def test_create_log_builds_request_model(monkeypatch: pytest.MonkeyPatch) -> None:
+    stub_client = StubClient()
+    monkeypatch.setattr(
+        log_tools,
+        "create_habitipy_client",
+        lambda: stub_client_context(stub_client),
+    )
+
+    result = log_tools.create_log(
+        "habit_123",
+        unit_symbol="kM",
+        value=5,
+        target_date="2024-01-05",
+    )
+
+    assert result == {"message": "Habit log created successfully"}
+    method_name, args, kwargs = stub_client.habits.calls[0]
+    assert method_name == "create_log"
+    assert kwargs == {}
+    assert args[0] == "habit_123"
+    assert isinstance(args[1], HabitLogRequest)
+    assert args[1].unit_symbol == UnitSymbol.KM
+    assert args[1].value == 5
+    assert args[1].target_date == date(2024, 1, 5)
+
+
+def test_complete_log_without_target_date_passes_none(monkeypatch: pytest.MonkeyPatch) -> None:
+    stub_client = StubClient()
+    monkeypatch.setattr(
+        log_tools,
+        "create_habitipy_client",
+        lambda: stub_client_context(stub_client),
+    )
+
+    result = log_tools.complete_log("habit_123")
+
+    assert result == {"message": "Habit marked as completed successfully"}
+    assert stub_client.habits.calls[0] == ("complete_log", ("habit_123", None), {})
+
+
+def test_skip_log_with_target_date_builds_action_request(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    stub_client = StubClient()
+    monkeypatch.setattr(
+        log_tools,
+        "create_habitipy_client",
+        lambda: stub_client_context(stub_client),
+    )
+
+    result = log_tools.skip_log("habit_123", target_date="2024-01-08")
+
+    assert result == {"message": "Habit marked as skipped successfully"}
+    method_name, args, kwargs = stub_client.habits.calls[0]
+    assert method_name == "skip_log"
+    assert kwargs == {}
+    assert args[0] == "habit_123"
+    assert isinstance(args[1], HabitLogActionRequest)
+    assert args[1].target_date == date(2024, 1, 8)
+
+
+def test_list_notes_forwards_to_client(monkeypatch: pytest.MonkeyPatch) -> None:
+    stub_client = StubClient()
+    monkeypatch.setattr(
+        note_tools,
+        "create_habitipy_client",
+        lambda: stub_client_context(stub_client),
+    )
+
+    result = note_tools.list_notes("habit_123")
+
+    assert result == [{"id": "note_1"}]
+    assert stub_client.habits.calls[0] == ("list_notes", ("habit_123",), {})
+
+
+def test_create_note_builds_request_model(monkeypatch: pytest.MonkeyPatch) -> None:
+    stub_client = StubClient()
+    monkeypatch.setattr(
+        note_tools,
+        "create_habitipy_client",
+        lambda: stub_client_context(stub_client),
+    )
+
+    result = note_tools.create_note(
+        "habit_123",
+        content="Solid run today",
+        mood_level="high",
+        photos=["https://example.com/photo1.jpg"],
+    )
+
+    assert result == {"id": "note_1", "content": "Solid run today"}
+    method_name, args, kwargs = stub_client.habits.calls[0]
+    assert method_name == "create_note"
+    assert kwargs == {}
+    assert args[0] == "habit_123"
+    assert isinstance(args[1], HabitNoteCreateRequest)
+    assert args[1].content == "Solid run today"
+    assert args[1].mood_level == MoodLevel.HIGH
+    assert args[1].photos == ["https://example.com/photo1.jpg"]

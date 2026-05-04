@@ -9,7 +9,9 @@ from .config import Settings, load_settings
 
 
 @contextmanager
-def create_habitipy_client(settings: Settings | None = None) -> Iterator[HabitipyClient]:
+def create_habitipy_client(
+    settings: Settings | None = None,
+) -> Iterator[HabitipyClient]:
     runtime_settings = settings or load_settings()
 
     with HabitipyClient(

@@ -37,10 +37,14 @@ def test_load_settings_uses_defaults_when_optional_values_are_missing() -> None:
 
 
 def test_load_settings_rejects_invalid_timeout() -> None:
-    with pytest.raises(ConfigurationError, match="HABITIFY_TIMEOUT must be a valid number"):
+    with pytest.raises(
+        ConfigurationError, match="HABITIFY_TIMEOUT must be a valid number"
+    ):
         load_settings(env={"HABITIFY_API_KEY": "test-key", "HABITIFY_TIMEOUT": "fast"})
 
 
 def test_load_settings_rejects_non_positive_timeout() -> None:
-    with pytest.raises(ConfigurationError, match="HABITIFY_TIMEOUT must be greater than 0"):
+    with pytest.raises(
+        ConfigurationError, match="HABITIFY_TIMEOUT must be greater than 0"
+    ):
         load_settings(env={"HABITIFY_API_KEY": "test-key", "HABITIFY_TIMEOUT": "0"})

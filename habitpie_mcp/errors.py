@@ -3,7 +3,12 @@ from __future__ import annotations
 from datetime import date
 
 import httpx
-from habitipie.errors import AuthenticationError, NotFoundError, RateLimitError, ResponseDecodeError
+from habitipie.errors import (
+    AuthenticationError,
+    NotFoundError,
+    RateLimitError,
+    ResponseDecodeError,
+)
 
 
 def parse_iso_date(value: str | None, *, field_name: str) -> date | None:
@@ -13,7 +18,9 @@ def parse_iso_date(value: str | None, *, field_name: str) -> date | None:
     try:
         return date.fromisoformat(value)
     except ValueError as exc:
-        raise ValueError(f"{field_name} must be an ISO date in YYYY-MM-DD format.") from exc
+        raise ValueError(
+            f"{field_name} must be an ISO date in YYYY-MM-DD format."
+        ) from exc
 
 
 def translate_tool_error(exc: Exception) -> Exception:

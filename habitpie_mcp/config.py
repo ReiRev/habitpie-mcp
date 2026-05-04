@@ -37,7 +37,9 @@ def load_settings(
         try:
             timeout = float(timeout_raw)
         except ValueError as exc:
-            raise ConfigurationError("HABITIFY_TIMEOUT must be a valid number.") from exc
+            raise ConfigurationError(
+                "HABITIFY_TIMEOUT must be a valid number."
+            ) from exc
 
     if timeout <= 0:
         raise ConfigurationError("HABITIFY_TIMEOUT must be greater than 0.")
